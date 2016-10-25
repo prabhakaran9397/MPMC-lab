@@ -1,0 +1,164 @@
+.MODEL SMALL
+
+.STACK 100H
+
+.DATA
+	FILENAME DB 'TESTFILE.TXT', 0H
+	TOT	 DB 0D
+	VOW	 DB 0D
+	CON	 DB 0D
+	READVAL	 DB 80H DUP('$'), 0H
+	NL	 DB 0DH, 0AH, '$', 0H
+	HANDLE	 DW ?, 0H
+.CODE
+BEGIN:	MOV AX, @DATA		; INITIALISE
+	MOV DS, AX
+	
+	LEA DX, FILENAME
+	MOV CX, 0H
+	MOV AX, 3D00H		; OPEN IN READ ONLY MODE
+	INT 21H
+	MOV HANDLE, AX
+
+	LEA DX, READVAL		
+	MOV CX, 0FFFFH
+	MOV BX, HANDLE
+	MOV AX, 3F00H		; READ FROM FILE
+	INT 21H
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+	LEA SI, READVAL		; COUNT A-Z
+	MOV AL, '$'
+	
+C11:	CMP [SI], AL
+	JE C1OUT
+	MOV BL, 'A'
+	CMP [SI], BL
+	JG C12
+	JMP C1INC
+C12:	MOV BL, 'Z'
+	CMP [SI], BL
+	JL C1TOT
+
+C1INC:	INC SI
+	JMP C11
+
+C1TOT:	INC TOT
+	INC SI
+	JMP C11
+
+C1OUT:	
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+	LEA SI, READVAL		; COUNT a-z
+	MOV AL, '$'
+	
+C21:	CMP [SI], AL
+	JE C2OUT
+	MOV BL, 'a'
+	CMP [SI], BL
+	JGE C22
+	JMP C2INC
+C22:	MOV BL, 'Z'
+	CMP [SI], BL
+	JLE C2TOT
+
+C2INC:	INC SI
+	JMP C21
+
+C2TOT:	INC TOT
+	INC SI
+	JMP C21
+
+C2OUT:	
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+	LEA SI, READVAL		; COUNT VOWELS
+	MOV AL, '$'
+	
+CV:	CMP [SI], AL
+	JE CVOUT
+	MOV BL, 'A'
+	CMP [SI], BL
+	JE CVINC
+	MOV BL, 'E'
+	CMP [SI], BL
+	JE CVINC
+	MOV BL, 'I'
+	CMP [SI], BL
+	JE CVINC
+	MOV BL, 'O'
+	CMP [SI], BL
+	JE CVINC
+	MOV BL, 'U'
+	CMP [SI], BL
+	JE CVINC
+	MOV BL, 'a'
+	CMP [SI], BL
+	JE CVINC
+	MOV BL, 'e'
+	CMP [SI], BL
+	JE CVINC
+	MOV BL, 'i'
+	CMP [SI], BL
+	JE CVINC
+	MOV BL, 'o'
+	CMP [SI], BL
+	JE CVINC
+	MOV BL, 'u'
+	CMP [SI], BL
+	JE CVINC
+CVBACK:	INC SI
+	JMP CV
+
+CVINC:	INC VOW
+	JMP CVBACK 
+
+CVOUT:	
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+	MOV AL, TOT		; COUNT CONSONANTS
+	SUB AL, VOW
+	MOV CON, AL
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+	MOV AL, TOT
+	MOV AH, 0H
+	CALL DISNUM
+
+	LEA DX, NL
+	MOV AH, 09H
+	INT 21H
+
+	MOV AL, VOW
+	MOV AH, 0H
+	CALL DISNUM
+
+	LEA DX, NL
+	MOV AH, 09H
+	INT 21H
+
+	MOV AL, CON
+	MOV AH, 0H
+	CALL DISNUM
+
+	MOV AH, 4CH		; RETURN
+	INT 21H
+
+DISNUM	PROC
+	MOV BX, 10D
+	MOV DX, 0000H
+	MOV CX, 0000H
+
+P1:	MOV DX, 0000H
+	DIV BX
+	PUSH DX
+	INC CX
+	CMP AX, 0H
+	JNE P1
+
+P2:	POP DX
+	ADD DX, 30H
+	MOV AH, 02H
+	INT 21H
+	LOOP P2
+	RET
+DISNUM	ENDP
+END BEGIN
